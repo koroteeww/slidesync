@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create <%= type %></title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Create <%= t('session.' + type) %></h1>
+
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="error"><%= error %></div>
+    <% } %>
+
+    <form method="POST" action="/dashboard/create" id="createForm">
+      <input type="hidden" name="type" value="<%= type %>">
+
+      <div>
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" required maxlength="120">
+      </div>
+
+      <% if (type === 'wordcloud') { %>
+        <div>
+          <label for="prompt">Prompt:</label>
+          <textarea id="prompt" name="prompt" required maxlength="300"></textarea>
+        </div>
+      <% } else { %>
+        <div id="questions">
+          <!-- Questions will be added here -->
+        </div>
+        <button type="button" onclick="addQuestion()">Add Question</button>
+      <% } %>
+
+      <button type="submit">Create Session</button>
+    </form>
+
+    <script>
+      let questionCount = 0;
+
+      function addQuestion() {
+        if (questionCount >= 10) return;
+
+        questionCount++;
+        const questionsDiv = document.getElementById('questions');
+
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'question';
+        questionDiv.innerHTML = `
+          <h3>Question ${questionCount}</h3>
+          <label>Text:</label>
+          <input type="text" name="questions[${questionCount-1}][text]" required maxlength="300">
+          <div class="options">
+            <button type="button" onclick="addOption(this)">Add Option</button>
+          </div>
+          <% if (type === 'quiz') { %>
+            <label>Correct Answer (0-based index):</label>
+            <input type="number" name="questions[${questionCount-1}][correct]" min="0" required>
+          <% } %>
+        `;
+        questionsDiv.appendChild(questionDiv);
+
+        // Add first two options
+        addOption(questionDiv.querySelector('.options button'));
+        addOption(questionDiv.querySelector('.options button'));
+      }
+
+      function addOption(button) {
+        const optionsDiv = button.parentElement;
+        const optionCount = optionsDiv.querySelectorAll('input').length;
+        if (optionCount >= 6) return;
+
+        const optionInput = document.createElement('input');
+        optionInput.type = 'text';
+        optionInput.name = `questions[${questionCount-1}][options][${optionCount}]`;
+        optionInput.required = true;
+        optionInput.maxLength = 150;
+        optionInput.placeholder = `Option ${optionCount + 1}`;
+
+        optionsDiv.insertBefore(optionInput, button);
+      }
+
+      // Add first question
+      addQuestion();
+    </script>
+  </div>
+</body>
+</html>

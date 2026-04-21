@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= session.title %></title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <div class="container">
+    <h1><%= session.title %></h1>
+
+    <form id="quizForm">
+      <% session.config.questions.forEach(question => { %>
+        <div class="question">
+          <h3><%= question.text %></h3>
+          <% question.options.forEach((option, index) => { %>
+            <label>
+              <input type="radio" name="answers[<%= question.id %>]" value="<%= index %>" required>
+              <%= option %>
+            </label>
+          <% }); %>
+        </div>
+      <% }); %>
+
+      <button type="submit">Submit</button>
+    </form>
+
+    <div id="message"></div>
+  </div>
+
+  <script src="/js/app.js"></script>
+  <script>
+    const SESSION_ID = '<%= session.id %>';
+
+    document.getElementById('quizForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const formData = new FormData(e.target);
+      const answers = {};
+
+      for (let [key, value] of formData.entries()) {
+        const match = key.match(/answers\[(\d+)\]/);
+        if (match) {
+          answers[parseInt(match[1])] = parseInt(value);
+        }
+      }
+
+      try {
+        const response = await fetch(`/s/${SESSION_ID}/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            participantId: getParticipantId(),
+            answers,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (result.ok) {
+          document.getElementById('message').textContent = 'Submitted successfully!';
+          e.target.style.display = 'none';
+        } else {
+          document.getElementById('message').textContent = result.error;
+        }
+      } catch (error) {
+        document.getElementById('message').textContent = 'Error submitting';
+      }
+    });
+  </script>
+</body>
+</html>

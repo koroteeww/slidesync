@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= t('auth.register') %></title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <div class="container">
+    <h1><%= t('auth.register') %></h1>
+
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="error"><%= error %></div>
+    <% } %>
+
+    <form method="POST" action="/register">
+      <div>
+        <label for="email"><%= t('auth.email') %>:</label>
+        <input type="email" id="email" name="email" required maxlength="254">
+      </div>
+
+      <div>
+        <label for="password"><%= t('auth.password') %>:</label>
+        <input type="password" id="password" name="password" required minlength="8" maxlength="72">
+      </div>
+
+      <button type="submit"><%= t('auth.register') %></button>
+    </form>
+
+    <p><a href="/login"><%= t('auth.login') %></a></p>
+  </div>
+</body>
+</html>

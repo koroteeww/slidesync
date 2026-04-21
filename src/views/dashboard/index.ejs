@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= t('dashboard.title') %></title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <div class="container">
+    <h1><%= t('dashboard.title') %></h1>
+
+    <a href="/dashboard/create?type=quiz"><%= t('session.quiz') %></a> |
+    <a href="/dashboard/create?type=poll"><%= t('session.poll') %></a> |
+    <a href="/dashboard/create?type=wordcloud"><%= t('session.wordcloud') %></a>
+
+    <% if (sessions.length === 0) { %>
+      <p><%= t('dashboard.noSessions') %></p>
+    <% } else { %>
+      <ul>
+        <% sessions.forEach(session => { %>
+          <li>
+            <strong><%= session.title %></strong> (<%= t('session.' + session.type) %>)
+            - <%= session.status === 'open' ? t('session.open') : t('session.closed') %>
+            <a href="/dashboard/session/<%= session.id %>">View</a>
+          </li>
+        <% }); %>
+      </ul>
+    <% } %>
+
+    <form method="POST" action="/logout">
+      <button type="submit"><%= t('auth.logout') %></button>
+    </form>
+  </div>
+</body>
+</html>

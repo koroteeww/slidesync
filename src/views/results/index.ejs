@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= session.title %></title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <div class="container">
+    <h1><%= session.title %></h1>
+    <p>Type: <%= t('session.' + session.type) %></p>
+    <p>Status: <%= session.status === 'open' ? t('session.open') : t('session.closed') %></p>
+    <p>Participant Link: <a href="/s/<%= session.id %>" target="_blank">/s/<%= session.id %></a></p>
+
+    <div id="results">
+      <!-- Results will be loaded here -->
+    </div>
+
+    <% if (session.status === 'open') { %>
+      <form method="POST" action="/dashboard/session/<%= session.id %>/close">
+        <button type="submit"><%= t('session.close') %></button>
+      </form>
+    <% } %>
+
+    <form method="POST" action="/dashboard/session/<%= session.id %>/delete">
+      <button type="submit" onclick="return confirm('Are you sure?')"><%= t('session.delete') %></button>
+    </form>
+
+    <a href="/dashboard">Back to Dashboard</a>
+  </div>
+
+  <script>
+    const SESSION_ID = '<%= session.id %>';
+
+    async function loadResults() {
+      try {
+        const res = await fetch('/api/results/' + SESSION_ID);
+        const data = await res.json();
+        renderResults(data);
+      } catch (error) {
+        console.error('Error loading results:', error);
+      }
+    }
+
+    function renderResults(data) {
+      const resultsDiv = document.getElementById('results');
+      // Basic rendering - in real app this would be more sophisticated
+      resultsDiv.innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+    }
+
+    // Load results initially and poll if open
+    loadResults();
+    if ('<%= session.status %>' === 'open') {
+      setInterval(loadResults, 500);
+    }
+  </script>
+</body>
+</html>
