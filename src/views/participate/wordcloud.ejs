@@ -17,43 +17,73 @@
         <input type="text" id="word" name="word" required maxlength="100">
       </div>
 
-      <button type="submit">Submit</button>
+      <div style="text-align:center; margin-top:1rem;">
+        <button id="submitBtn" type="button"><%= t('participate.submit') %></button>
+      </div>
     </form>
 
-    <div id="message"></div>
+    <div id="thankyou" style="display:none; text-align:center; margin-top:1.5rem;">
+      <p><%= t('participate.wordAdded') %></p>
+    </div>
+
+    <div class="wordcloud-container">
+      <canvas id="wc" width="800" height="400"></canvas>
+    </div>
   </div>
 
   <script src="/js/app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.js"></script>
   <script>
-    const SESSION_ID = '<%= session.id %>';
+    window.SESSION_ID = '<%= session.id %>';
+    window.SESSION_TYPE = '<%= session.type %>';
 
-    document.getElementById('wordcloudForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-
+    async function submitWord(){
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
       const word = document.getElementById('word').value.trim();
-
-      try {
-        const response = await fetch(`/s/${SESSION_ID}/submit`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            participantId: getParticipantId(),
-            word,
-          }),
+      try{
+        const res = await fetch(`/s/${SESSION_ID}/submit`, {
+          method: 'POST', headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ participantId: localStorage.getItem('participantId') || '', word })
         });
+        const data = await res.json();
+        if(res.ok){
+          document.getElementById('wordcloudForm').style.display = 'none';
+          document.getElementById('thankyou').style.display = 'block';
+        } else { alert(data.error || 'Submit failed'); btn.disabled = false; }
+      } catch(err){ console.error(err); alert('Submission error'); btn.disabled = false; }
+    }
 
-        const result = await response.json();
+    document.getElementById('submitBtn').addEventListener('click', submitWord);
 
-        if (result.ok) {
-          document.getElementById('message').textContent = 'Submitted successfully!';
-          e.target.style.display = 'none';
-        } else {
-          document.getElementById('message').textContent = result.error;
-        }
-      } catch (error) {
-        document.getElementById('message').textContent = 'Error submitting';
+    // Poll results and render cloud
+    async function fetchResults(){
+      try{
+        const res = await fetch('/api/results/' + SESSION_ID);
+        if(!res.ok) return null;
+        return await res.json();
+      } catch(e){ return null; }
+    }
+
+    function renderCloud(words){
+      const list = words.map(w => [w.text, w.count]);
+      const canvas = document.getElementById('wc');
+      if(typeof WordCloud !== 'undefined' && canvas){
+        WordCloud(canvas, { list, gridSize: Math.round(16 * canvas.width / 1024), weightFactor: 2, rotateRatio: 0.5 });
       }
-    });
+    }
+
+    async function pollCloud(){
+      const data = await fetchResults();
+      if(data && data.type === 'wordcloud'){
+        renderCloud(data.words || []);
+      }
+    }
+
+    // start polling every 500ms
+    setInterval(pollCloud, 500);
+    // initial render
+    pollCloud();
   </script>
 </body>
 </html>

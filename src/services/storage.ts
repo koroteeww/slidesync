@@ -35,6 +35,18 @@ export function readUsers(): User[] {
   }
 }
 
+export function writeUsers(users: User[]): void {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+  } catch (error) {
+    console.error('Error writing users:', error);
+    throw error;
+  }
+}
+
 export function listSessionsForSpeaker(speakerId: string): Session[] {
   try {
     if (!fs.existsSync(SESSIONS_DIR)) {
@@ -106,31 +118,5 @@ export function deleteSession(id: string): void {
   } catch (error) {
     console.error(`Error deleting session ${id}:`, error);
     throw error;
-  }
-}
-
-export function listSessionsForSpeaker(speakerId: string): Session[] {
-  try {
-    if (!fs.existsSync(SESSIONS_DIR)) {
-      return [];
-    }
-
-    const files = fs.readdirSync(SESSIONS_DIR).filter((f: string) => f.endsWith('.json'));
-    const sessions: Session[] = [];
-
-    for (const file of files) {
-      const sessionId = file.replace('.json', '');
-      if (SESSION_ID_REGEX.test(sessionId)) {
-        const session = readSession(sessionId);
-        if (session && session.speakerId === speakerId) {
-          sessions.push(session);
-        }
-      }
-    }
-
-    return sessions;
-  } catch (error) {
-    console.error('Error listing sessions for speaker:', error);
-    return [];
   }
 }

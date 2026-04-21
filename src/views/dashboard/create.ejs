@@ -1,90 +1,203 @@
-<!DOCTYPE html>
-<html lang="<%= lang %>">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create <%= type %></title>
-  <link rel="stylesheet" href="/css/main.css">
-</head>
-<body>
-  <div class="container">
-    <h1>Create <%= t('session.' + type) %></h1>
+<%
+var body = `
+<div class="container">
+  <h1>Create ${t('session.' + type)}</h1>
 
-    <% if (typeof error !== 'undefined' && error) { %>
-      <div class="error"><%= error %></div>
-    <% } %>
+  ${typeof error !== 'undefined' && error ? `<div class="flash error">${error}</div>` : ''}
 
-    <form method="POST" action="/dashboard/create" id="createForm">
-      <input type="hidden" name="type" value="<%= type %>">
+  <form method="POST" action="/dashboard/create" id="createForm">
+    <input type="hidden" name="type" value="<%= type %>">
 
-      <div>
-        <label for="title">Title:</label>
-        <input type="text" id="title" name="title" required maxlength="120">
+    <div class="form-group">
+      <label for="title">${t('session.title')}:</label>
+      <input type="text" id="title" name="title" required maxlength="120" placeholder="Enter session title">
+      <small>1-120 characters</small>
+    </div>
+
+    ${type === 'wordcloud' ? `
+      <div class="form-group">
+        <label for="prompt">Prompt:</label>
+        <textarea id="prompt" name="prompt" required maxlength="300" placeholder="Enter prompt for participants"></textarea>
+        <small>1-300 characters</small>
       </div>
+    ` : `
+      <div id="questions-container">
+        <h3>Questions <small>(1-10 questions)</small></h3>
+        <div id="questions"></div>
+        <button type="button" onclick="addQuestion()" id="addQuestionBtn">Add Question</button>
+      </div>
+    `}
 
-      <% if (type === 'wordcloud') { %>
-        <div>
-          <label for="prompt">Prompt:</label>
-          <textarea id="prompt" name="prompt" required maxlength="300"></textarea>
-        </div>
-      <% } else { %>
-        <div id="questions">
-          <!-- Questions will be added here -->
-        </div>
-        <button type="button" onclick="addQuestion()">Add Question</button>
-      <% } %>
-
+    <div class="form-actions">
       <button type="submit">Create Session</button>
-    </form>
+      <a href="/dashboard" class="btn-cancel">Cancel</a>
+    </div>
+  </form>
+</div>
 
-    <script>
-      let questionCount = 0;
+${type !== 'wordcloud' ? `
+<script>
+let questionCount = 0;
 
-      function addQuestion() {
-        if (questionCount >= 10) return;
+function addQuestion() {
+  if (questionCount >= 10) {
+    alert('Maximum 10 questions allowed');
+    return;
+  }
 
-        questionCount++;
-        const questionsDiv = document.getElementById('questions');
+  questionCount++;
+  const questionsDiv = document.getElementById('questions');
 
-        const questionDiv = document.createElement('div');
-        questionDiv.className = 'question';
-        questionDiv.innerHTML = `
-          <h3>Question ${questionCount}</h3>
-          <label>Text:</label>
-          <input type="text" name="questions[${questionCount-1}][text]" required maxlength="300">
-          <div class="options">
-            <button type="button" onclick="addOption(this)">Add Option</button>
-          </div>
-          <% if (type === 'quiz') { %>
-            <label>Correct Answer (0-based index):</label>
-            <input type="number" name="questions[${questionCount-1}][correct]" min="0" required>
-          <% } %>
-        `;
-        questionsDiv.appendChild(questionDiv);
+  const questionDiv = document.createElement('div');
+  questionDiv.className = 'question-block';
+  questionDiv.dataset.questionIndex = questionCount - 1;
 
-        // Add first two options
-        addOption(questionDiv.querySelector('.options button'));
-        addOption(questionDiv.querySelector('.options button'));
-      }
+  questionDiv.innerHTML = \`
+    <div class="question-header">
+      <h4>Question \${questionCount}</h4>
+      <button type="button" onclick="removeQuestion(this)" class="btn-remove">Remove</button>
+    </div>
 
-      function addOption(button) {
-        const optionsDiv = button.parentElement;
-        const optionCount = optionsDiv.querySelectorAll('input').length;
-        if (optionCount >= 6) return;
+    <div class="form-group">
+      <label>Question Text:</label>
+      <input type="text" name="questions[\${questionCount-1}][text]" required maxlength="300" placeholder="Enter question">
+      <small>1-300 characters</small>
+    </div>
 
-        const optionInput = document.createElement('input');
-        optionInput.type = 'text';
-        optionInput.name = `questions[${questionCount-1}][options][${optionCount}]`;
-        optionInput.required = true;
-        optionInput.maxLength = 150;
-        optionInput.placeholder = `Option ${optionCount + 1}`;
+    <div class="options-container">
+      <label>Options <small>(2-6 options)</small>:</label>
+      <div class="options" data-question-index="\${questionCount-1}"></div>
+      <button type="button" onclick="addOption(this)" class="btn-add-option">Add Option</button>
+    </div>
 
-        optionsDiv.insertBefore(optionInput, button);
-      }
+    ${type === 'quiz' ? \`
+      <div class="correct-answer">
+        <label>Correct Answer:</label>
+        <div class="correct-radios" data-question-index="\${questionCount-1}"></div>
+      </div>
+    \` : ''}
+  \`;
 
-      // Add first question
-      addQuestion();
-    </script>
-  </div>
-</body>
-</html>
+  questionsDiv.appendChild(questionDiv);
+
+  // Add initial 2 options
+  addOption(questionDiv.querySelector('.btn-add-option'));
+  addOption(questionDiv.querySelector('.btn-add-option'));
+
+  updateAddQuestionButton();
+}
+
+function removeQuestion(button) {
+  if (questionCount <= 1) {
+    alert('Must have at least 1 question');
+    return;
+  }
+
+  button.closest('.question-block').remove();
+  questionCount--;
+
+  // Renumber remaining questions
+  document.querySelectorAll('.question-block').forEach((block, index) => {
+    block.dataset.questionIndex = index;
+    block.querySelector('h4').textContent = \`Question \${index + 1}\`;
+    block.querySelectorAll('input[name*="questions"]').forEach(input => {
+      const name = input.name.replace(/questions\\[\\d+\\]/, \`questions[\${index}]\`);
+      input.name = name;
+    });
+  });
+
+  updateAddQuestionButton();
+}
+
+function addOption(button) {
+  const optionsContainer = button.previousElementSibling;
+  const questionIndex = optionsContainer.dataset.questionIndex;
+  const optionCount = optionsContainer.querySelectorAll('.option-input').length;
+
+  if (optionCount >= 6) {
+    alert('Maximum 6 options allowed');
+    return;
+  }
+
+  const optionDiv = document.createElement('div');
+  optionDiv.className = 'option-input';
+  optionDiv.innerHTML = \`
+    <input type="text" name="questions[\${questionIndex}][options][\${optionCount}]" required maxlength="150" placeholder="Option \${optionCount + 1}">
+    <button type="button" onclick="removeOption(this)" class="btn-remove-option">×</button>
+  \`;
+
+  optionsContainer.insertBefore(optionDiv, button);
+
+  // Update correct answer radios if quiz
+  if ('<%= type %>' === 'quiz') {
+    updateCorrectRadios(questionIndex);
+  }
+
+  updateAddOptionButtons();
+}
+
+function removeOption(button) {
+  const optionDiv = button.closest('.option-input');
+  const optionsContainer = optionDiv.parentElement;
+  const questionIndex = optionsContainer.dataset.questionIndex;
+
+  if (optionsContainer.querySelectorAll('.option-input').length <= 2) {
+    alert('Must have at least 2 options');
+    return;
+  }
+
+  optionDiv.remove();
+
+  // Renumber options
+  optionsContainer.querySelectorAll('.option-input').forEach((opt, index) => {
+    opt.querySelector('input').name = \`questions[\${questionIndex}][options][\${index}]\`;
+    opt.querySelector('input').placeholder = \`Option \${index + 1}\`;
+  });
+
+  // Update correct answer radios
+  if ('<%= type %>' === 'quiz') {
+    updateCorrectRadios(questionIndex);
+  }
+
+  updateAddOptionButtons();
+}
+
+function updateCorrectRadios(questionIndex) {
+  const radiosContainer = document.querySelector(\`.correct-radios[data-question-index="\${questionIndex}"]\`);
+  const optionCount = document.querySelector(\`.options[data-question-index="\${questionIndex}"] .option-input\`).parentElement.querySelectorAll('.option-input').length;
+
+  radiosContainer.innerHTML = '';
+  for (let i = 0; i < optionCount; i++) {
+    const radioDiv = document.createElement('div');
+    radioDiv.innerHTML = \`
+      <label>
+        <input type="radio" name="questions[\${questionIndex}][correct]" value="\${i}" required>
+        Option \${i + 1}
+      </label>
+    \`;
+    radiosContainer.appendChild(radioDiv);
+  }
+}
+
+function updateAddQuestionButton() {
+  const addBtn = document.getElementById('addQuestionBtn');
+  addBtn.disabled = questionCount >= 10;
+  addBtn.textContent = questionCount >= 10 ? 'Max 10 questions' : 'Add Question';
+}
+
+function updateAddOptionButtons() {
+  document.querySelectorAll('.btn-add-option').forEach(btn => {
+    const optionsContainer = btn.previousElementSibling;
+    const optionCount = optionsContainer.querySelectorAll('.option-input').length;
+    btn.disabled = optionCount >= 6;
+    btn.textContent = optionCount >= 6 ? 'Max 6 options' : 'Add Option';
+  });
+}
+
+// Initialize with one question
+addQuestion();
+</script>
+` : ''}
+`
+%>
+<%- include('../layout/base') %>

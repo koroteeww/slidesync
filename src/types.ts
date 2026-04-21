@@ -19,7 +19,7 @@ export interface Session {
   createdAt: string;             // ISO 8601
   firstUsedAt: string | null;   // set on first participant POST
   config: QuizConfig | PollConfig | WordCloudConfig;
-  responses: QuizResponse[] | PollResponse[] | WordCloudResponse[];
+  responses: (QuizResponse | PollResponse | WordCloudResponse)[];
 }
 
 // Config types

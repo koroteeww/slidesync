@@ -1,38 +1,26 @@
-<!DOCTYPE html>
-<html lang="<%= lang %>">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= t('auth.login') %></title>
-  <link rel="stylesheet" href="/css/main.css">
-</head>
-<body>
-  <div class="container">
-    <h1><%= t('auth.login') %></h1>
+<%
+var body = `
+<div class="container">
+  <h1>${t('auth.login')}</h1>
 
-    <% if (typeof error !== 'undefined' && error.length > 0) { %>
-      <div class="error"><%= error %></div>
-    <% } %>
+  ${typeof error !== 'undefined' && error ? `<div class="flash error">${error}</div>` : ''}
 
-    <% if (typeof success !== 'undefined' && success.length > 0) { %>
-      <div class="success"><%= success %></div>
-    <% } %>
+  <form method="POST" action="/login">
+    <div>
+      <label for="email">${t('auth.email')}:</label>
+      <input type="email" id="email" name="email" required>
+    </div>
 
-    <form method="POST" action="/login">
-      <div>
-        <label for="email"><%= t('auth.email') %>:</label>
-        <input type="email" id="email" name="email" required>
-      </div>
+    <div>
+      <label for="password">${t('auth.password')}:</label>
+      <input type="password" id="password" name="password" required>
+    </div>
 
-      <div>
-        <label for="password"><%= t('auth.password') %>:</label>
-        <input type="password" id="password" name="password" required>
-      </div>
+    <button type="submit">${t('auth.login')}</button>
+  </form>
 
-      <button type="submit"><%= t('auth.login') %></button>
-    </form>
-
-    <p><a href="/register"><%= t('auth.register') %></a></p>
-  </div>
-</body>
-</html>
+  <p><a href="/register">${t('auth.register')}</a></p>
+</div>
+`
+%>
+<%- include('../layout/base') %>

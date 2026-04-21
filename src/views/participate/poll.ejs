@@ -23,51 +23,53 @@
         </div>
       <% }); %>
 
-      <button type="submit">Submit</button>
+      <div style="text-align:center; margin-top:1rem;">
+        <button id="submitBtn" type="button"><%= t('participate.submit') %></button>
+      </div>
     </form>
 
-    <div id="message"></div>
+    <div id="thankyou" style="display:none; text-align:center; margin-top:1.5rem;">
+      <p><%= t('participate.submitted') %></p>
+    </div>
   </div>
 
   <script src="/js/app.js"></script>
   <script>
-    const SESSION_ID = '<%= session.id %>';
+    window.SESSION_ID = '<%= session.id %>';
+    window.SESSION_TYPE = '<%= session.type %>';
 
-    document.getElementById('pollForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const formData = new FormData(e.target);
+    function collectAnswers(){
+      const form = document.getElementById('pollForm');
+      const inputs = form.querySelectorAll('input[type=radio]:checked');
       const answers = {};
+      inputs.forEach(i => {
+        const m = i.name.match(/^answers\[(\d+)\]/) || i.name.match(/^q_(\d+)$/);
+        if(m) answers[m[1]] = Number(i.value);
+      });
+      return answers;
+    }
 
-      for (let [key, value] of formData.entries()) {
-        const match = key.match(/answers\[(\d+)\]/);
-        if (match) {
-          answers[parseInt(match[1])] = parseInt(value);
-        }
-      }
+    async function submitAnswers(){
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      const answers = collectAnswers();
 
-      try {
-        const response = await fetch(`/s/${SESSION_ID}/submit`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            participantId: getParticipantId(),
-            answers,
-          }),
+      try{
+        const res = await fetch(`/s/${SESSION_ID}/submit`, {
+          method: 'POST', headers: { 'Content-Type':'application/json' },
+          body: JSON.stringify({ participantId: localStorage.getItem('participantId') || '', answers })
         });
-
-        const result = await response.json();
-
-        if (result.ok) {
-          document.getElementById('message').textContent = 'Submitted successfully!';
-          e.target.style.display = 'none';
+        const data = await res.json();
+        if(res.ok){
+          document.getElementById('pollForm').style.display = 'none';
+          document.getElementById('thankyou').style.display = 'block';
         } else {
-          document.getElementById('message').textContent = result.error;
+          alert(data.error || 'Submit failed'); btn.disabled = false;
         }
-      } catch (error) {
-        document.getElementById('message').textContent = 'Error submitting';
-      }
-    });
+      } catch(err){ console.error(err); alert('Submission error'); btn.disabled = false; }
+    }
+
+    document.getElementById('submitBtn').addEventListener('click', submitAnswers);
   </script>
 </body>
 </html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %> - SlideSync</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <div class="nav-container">
+        <a href="<%= typeof userId !== 'undefined' && userId ? '/dashboard' : '/' %>" class="logo">SlideSync</a>
+        <div class="nav-links">
+          <% if (typeof userId !== 'undefined' && userId) { %>
+            <a href="/dashboard">Dashboard</a>
+            <form method="POST" action="/logout" style="display: inline;">
+              <button type="submit" class="btn-link">Logout</button>
+            </form>
+          <% } %>
+          <div class="lang-switcher">
+            <a href="?lang=en" class="<%= lang === 'en' ? 'active' : '' %>">EN</a> |
+            <a href="?lang=ru" class="<%= lang === 'ru' ? 'active' : '' %>">RU</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <% if (typeof error !== 'undefined' && error) { %>
+      <div class="flash error"><%= error %></div>
+    <% } %>
+    <% if (typeof success !== 'undefined' && success) { %>
+      <div class="flash success"><%= success %></div>
+    <% } %>
+
+    <%- body %>
+  </main>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>
